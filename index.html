@@ -464,13 +464,13 @@
         let currentSearchCage = '';
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Don't load data on startup
-            
-            // Add search input handler
-            document.getElementById('cageSearchInput').addEventListener('input', function(e) {
-                const searchValue = e.target.value.trim();
-                currentSearchCage = searchValue;
-                displayQRCodes();
+            // Add keypress event listener for the search input
+            document.getElementById('cageSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const searchValue = e.target.value.trim();
+                    currentSearchCage = searchValue;
+                    displayQRCodes();
+                }
             });
         });
 
