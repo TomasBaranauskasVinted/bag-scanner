@@ -370,7 +370,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bag Shipment Scanner <span class="version-badge">v2 - with Cages</span></h1>
+            <h1>Quasi Cagification v3 <span class="version-badge">with Cages</span></h1>
             <p class="subtitle">Scan and manage cages and shipment bags (synced with Google Sheets)</p>
         </div>
 
@@ -820,7 +820,7 @@
             let codesToDisplay = scannedCodes;
             if (currentSearchCage) {
                 codesToDisplay = scannedCodes.filter(item => 
-                    item.cage && item.cage.toLowerCase().includes(currentSearchCage.toLowerCase())
+                    item.cage && typeof item.cage === 'string' && item.cage.toLowerCase().includes(currentSearchCage.toLowerCase())
                 );
                 
                 if (codesToDisplay.length > 0) {
