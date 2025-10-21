@@ -337,6 +337,34 @@
             font-weight: 600;
             margin-left: 6px;
         }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d1d1;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #004655;
+        }
+
+        .search-results-info {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            color: #1565c0;
+            font-size: 14px;
+            border-left: 3px solid #004655;
+        }
     </style>
 </head>
 <body>
@@ -410,6 +438,12 @@
                 <div id="viewErrorMessage" class="error-message"></div>
                 <div id="viewLoadingMessage" class="loading-message"></div>
                 
+                <div class="search-container">
+                    <input type="text" id="cageSearchInput" class="search-input" placeholder="Search by cage code...">
+                </div>
+                
+                <div id="searchResultsInfo" class="search-results-info" style="display: none;"></div>
+                
                 <div id="qrGrid" class="qr-grid">
                     <div class="empty-state">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -427,9 +461,17 @@
         let scannedCodes = [];
         let currentCage = null;
         let dataLoaded = false;
+        let currentSearchCage = '';
 
         document.addEventListener('DOMContentLoaded', function() {
             // Don't load data on startup
+            
+            // Add search input handler
+            document.getElementById('cageSearchInput').addEventListener('input', function(e) {
+                const searchValue = e.target.value.trim();
+                currentSearchCage = searchValue;
+                displayQRCodes();
+            });
         });
 
         // Cage input handling
@@ -768,24 +810,43 @@
 
         function displayQRCodes() {
             const gridEl = document.getElementById('qrGrid');
+            const searchResultsInfo = document.getElementById('searchResultsInfo');
             
             while (gridEl.firstChild) {
                 gridEl.removeChild(gridEl.firstChild);
             }
             
-            if (scannedCodes.length === 0) {
+            // Filter codes based on search
+            let codesToDisplay = scannedCodes;
+            if (currentSearchCage) {
+                codesToDisplay = scannedCodes.filter(item => 
+                    item.cage && item.cage.toLowerCase().includes(currentSearchCage.toLowerCase())
+                );
+                
+                if (codesToDisplay.length > 0) {
+                    searchResultsInfo.textContent = `Found ${codesToDisplay.length} bag(s) for cage: ${currentSearchCage}`;
+                    searchResultsInfo.style.display = 'block';
+                } else {
+                    searchResultsInfo.textContent = `No bags found for cage: ${currentSearchCage}`;
+                    searchResultsInfo.style.display = 'block';
+                }
+            } else {
+                searchResultsInfo.style.display = 'none';
+            }
+            
+            if (codesToDisplay.length === 0) {
                 gridEl.innerHTML = `
                     <div class="empty-state">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                         </svg>
-                        <p>No QR codes to display</p>
+                        <p>${currentSearchCage ? 'No bags found for this cage' : 'No QR codes to display'}</p>
                     </div>
                 `;
                 return;
             }
             
-            scannedCodes.forEach((item, index) => {
+            codesToDisplay.forEach((item, index) => {
                 const qrItem = document.createElement('div');
                 qrItem.className = 'qr-item';
                 
