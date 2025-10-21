@@ -808,85 +808,85 @@
             }
         }
 
-        function displayQRCodes() {
-            const gridEl = document.getElementById('qrGrid');
-            const searchResultsInfo = document.getElementById('searchResultsInfo');
-            
-            while (gridEl.firstChild) {
-                gridEl.removeChild(gridEl.firstChild);
-            }
-            
-            // Filter codes based on search
-            let codesToDisplay = scannedCodes;
-            if (currentSearchCage) {
-                codesToDisplay = scannedCodes.filter(item => 
-                    item.cage && typeof item.cage === 'string' && item.cage.toLowerCase().includes(currentSearchCage.toLowerCase())
-                );
-                
-                if (codesToDisplay.length > 0) {
-                    searchResultsInfo.textContent = `Found ${codesToDisplay.length} bag(s) for cage: ${currentSearchCage}`;
-                    searchResultsInfo.style.display = 'block';
-                } else {
-                    searchResultsInfo.textContent = `No bags found for cage: ${currentSearchCage}`;
-                    searchResultsInfo.style.display = 'block';
-                }
-            } else {
-                searchResultsInfo.style.display = 'none';
-            }
-            
-            if (codesToDisplay.length === 0) {
-                gridEl.innerHTML = `
-                    <div class="empty-state">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                        </svg>
-                        <p>${currentSearchCage ? 'No bags found for this cage' : 'No QR codes to display'}</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            codesToDisplay.forEach((item, index) => {
-                const qrItem = document.createElement('div');
-                qrItem.className = 'qr-item';
-                
-                const qrCodeDiv = document.createElement('div');
-                qrCodeDiv.className = 'qr-code';
-                qrCodeDiv.id = `qr-${index}`;
-                
-                const qrInfo = document.createElement('div');
-                qrInfo.className = 'qr-info';
-                qrInfo.innerHTML = `
-                    <div class="info-block">
-                        <div class="info-label">Bag Code</div>
-                        <div class="info-value">${item.code}</div>
-                    </div>
-                    <div class="info-block">
-                        <div class="info-label">Cage Code</div>
-                        <div class="info-value">${item.cage || '-'}</div>
-                    </div>
-                    <div class="info-block">
-                        <div class="info-label">Added at</div>
-                        <div class="timestamp">${formatTimestamp(item.timestamp)}</div>
-                    </div>
-                `;
-                
-                qrItem.appendChild(qrCodeDiv);
-                qrItem.appendChild(qrInfo);
-                gridEl.appendChild(qrItem);
-                
-                setTimeout(() => {
-                    new QRCode(document.getElementById(`qr-${index}`), {
-                        text: item.code,
-                        width: 120,
-                        height: 120,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                }, 10);
-            });
+function displayQRCodes() {
+    const gridEl = document.getElementById('qrGrid');
+    const searchResultsInfo = document.getElementById('searchResultsInfo');
+    
+    while (gridEl.firstChild) {
+        gridEl.removeChild(gridEl.firstChild);
+    }
+    
+    // Filter codes based on exact match
+    let codesToDisplay = scannedCodes;
+    if (currentSearchCage) {
+        codesToDisplay = scannedCodes.filter(item => 
+            item.cage && typeof item.cage === 'string' && item.cage.toLowerCase() === currentSearchCage.toLowerCase()
+        );
+        
+        if (codesToDisplay.length > 0) {
+            searchResultsInfo.textContent = `Found ${codesToDisplay.length} bag(s) for cage: ${currentSearchCage}`;
+            searchResultsInfo.style.display = 'block';
+        } else {
+            searchResultsInfo.textContent = `No bags found for cage: ${currentSearchCage}`;
+            searchResultsInfo.style.display = 'block';
         }
+    } else {
+        searchResultsInfo.style.display = 'none';
+    }
+
+    if (codesToDisplay.length === 0) {
+        gridEl.innerHTML = `
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                </svg>
+                <p>${currentSearchCage ? 'No bags found for this cage' : 'No QR codes to display'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    codesToDisplay.forEach((item, index) => {
+        const qrItem = document.createElement('div');
+        qrItem.className = 'qr-item';
+        
+        const qrCodeDiv = document.createElement('div');
+        qrCodeDiv.className = 'qr-code';
+        qrCodeDiv.id = `qr-${index}`;
+        
+        const qrInfo = document.createElement('div');
+        qrInfo.className = 'qr-info';
+        qrInfo.innerHTML = `
+            <div class="info-block">
+                <div class="info-label">Bag Code</div>
+                <div class="info-value">${item.code}</div>
+            </div>
+            <div class="info-block">
+                <div class="info-label">Cage Code</div>
+                <div class="info-value">${item.cage || '-'}</div>
+            </div>
+            <div class="info-block">
+                <div class="info-label">Added at</div>
+                <div class="timestamp">${formatTimestamp(item.timestamp)}</div>
+            </div>
+        `;
+        
+        qrItem.appendChild(qrCodeDiv);
+        qrItem.appendChild(qrInfo);
+        gridEl.appendChild(qrItem);
+        
+        setTimeout(() => {
+            new QRCode(document.getElementById(`qr-${index}`), {
+                text: item.code,
+                width: 120,
+                height: 120,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }, 10);
+    });
+}
     </script>
 </body>
 </html>
