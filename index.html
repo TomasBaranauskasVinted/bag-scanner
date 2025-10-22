@@ -463,16 +463,14 @@
         let dataLoaded = false;
         let currentSearchCage = '';
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add keypress event listener for the search input
-            document.getElementById('cageSearchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const searchValue = e.target.value.trim();
-                    currentSearchCage = searchValue;
-                    displayQRCodes();
-                }
-            });
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Add input event listener for live search
+    document.getElementById('cageSearchInput').addEventListener('input', function(e) {
+        const searchValue = e.target.value.trim();
+        currentSearchCage = searchValue;
+        displayQRCodes();
+    });
+});
 
         // Cage input handling
         let cageInputTimeout;
