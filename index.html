@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bag Shipment Scanner v3</title>
+    <title>Quasi Cagification v3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
@@ -193,6 +193,15 @@
             border-left: 3px solid #2196f3;
         }
 
+        .info-message {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            border-left: 3px solid #ffc107;
+        }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -202,6 +211,28 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        .current-cage {
+            background: #e3f2fd;
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 3px solid #004655;
+        }
+
+        .current-cage-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .current-cage-code {
+            font-size: 18px;
+            font-weight: 600;
+            color: #004655;
         }
 
         .scanned-list {
@@ -253,28 +284,29 @@
 
         .qr-item .qr-info {
             flex-grow: 1;
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
             align-items: center;
         }
 
-        .qr-item .code-text {
-            font-weight: 600;
-            color: #1a1a1a;
-            font-size: 14px;
+        .qr-item .info-block {
+            text-align: left;
         }
 
-        .qr-item .timestamp-wrapper {
-            text-align: right;
-        }
-
-        .qr-item .timestamp-label {
+        .qr-item .info-label {
             color: #999;
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 2px;
             font-weight: 500;
+        }
+
+        .qr-item .info-value {
+            color: #1a1a1a;
+            font-size: 14px;
+            font-weight: 600;
         }
 
         .qr-item .timestamp {
@@ -305,19 +337,48 @@
             font-weight: 600;
             margin-left: 6px;
         }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d1d1;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #004655;
+        }
+
+        .search-results-info {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            color: #1565c0;
+            font-size: 14px;
+            border-left: 3px solid #004655;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bag Shipment Scanner <span class="version-badge">v3 - Cloud Sync</span></h1>
-            <p class="subtitle">Scan and manage shipment bag QR codes (synced with Google Sheets)</p>
+            <h1>Quasi Cagification v3 <span class="version-badge">with Cages</span></h1>
+            <p class="subtitle">Scan and manage cages and shipment bags (synced with Google Sheets)</p>
         </div>
 
         <div class="sticky-controls">
             <div class="tabs">
                 <div class="tabs-left">
-                    <button class="tab active" onclick="switchTab('scan')">Scan Codes</button>
+                    <button class="tab active" onclick="switchTab('cage')">Add Cage</button>
+                    <button class="tab" onclick="switchTab('scan')">Scan Bag</button>
                     <button class="tab" onclick="switchTab('view')">View QR Codes <span id="countBadge" class="count-badge" style="display: none;">0</span></button>
                 </div>
                 <button id="clearAllBtn" class="clear-all-btn" onclick="window.clearAllCodes()" style="display: none;">Clear All</button>
@@ -325,22 +386,49 @@
         </div>
 
         <div class="card">
-            <div id="scanTab" class="tab-content active">
+            <div id="cageTab" class="tab-content active">
+                <div id="cageSuccessMessage" class="success-message"></div>
+                <div id="cageErrorMessage" class="error-message"></div>
+                <div id="cageLoadingMessage" class="loading-message"></div>
+                
+                <div class="input-group">
+                    <input type="text" id="cageInput" placeholder="Scan or enter cage code" autofocus>
+                </div>
+
+                <div class="info-message">
+                    <strong>Note:</strong> Cage code cannot start with PAL or BAG
+                </div>
+
+                <h3 style="margin-bottom: 15px; color: #1a1a1a; font-size: 16px;">Recently Added Cages:</h3>
+                <div id="cageList" class="scanned-list">
+                    <div class="empty-state">
+                        <p>No cages added yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scanTab" class="tab-content">
                 <div id="successMessage" class="success-message"></div>
                 <div id="errorMessage" class="error-message"></div>
                 <div id="loadingMessage" class="loading-message"></div>
                 
+                <div id="currentCageDisplay" class="current-cage" style="display: none;">
+                    <div class="current-cage-label">Current Cage</div>
+                    <div class="current-cage-code" id="currentCageCode"></div>
+                </div>
+
+                <div class="info-message" id="noCageWarning">
+                    <strong>Note:</strong> No cage selected. Bags will be added without a cage code.
+                </div>
+                
                 <div class="input-group">
-                    <input type="text" id="codeInput" placeholder="Scan or enter bag code (e.g., BAG12345)" autofocus>
+                    <input type="text" id="codeInput" placeholder="Scan or enter bag code (e.g., BAG12345)">
                 </div>
 
                 <h3 style="margin-bottom: 15px; color: #1a1a1a; font-size: 16px;">Recently Scanned:</h3>
                 <div id="scannedList" class="scanned-list">
                     <div class="empty-state">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                        </svg>
-                        <p>Loading data...</p>
+                        <p>No codes scanned yet</p>
                     </div>
                 </div>
             </div>
@@ -350,12 +438,18 @@
                 <div id="viewErrorMessage" class="error-message"></div>
                 <div id="viewLoadingMessage" class="loading-message"></div>
                 
+                <div class="search-container">
+                    <input type="text" id="cageSearchInput" class="search-input" placeholder="Search by cage code...">
+                </div>
+                
+                <div id="searchResultsInfo" class="search-results-info" style="display: none;"></div>
+                
                 <div id="qrGrid" class="qr-grid">
                     <div class="empty-state">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                         </svg>
-                        <p>Loading data...</p>
+                        <p>Click here to load QR codes</p>
                     </div>
                 </div>
             </div>
@@ -365,11 +459,43 @@
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbwJvmab0vFe33-9mrqRdpBnSg05R7uPYemuD2X2blMJLUN5A1YFV-TXLJPwk-GVCjV6/exec';
         let scannedCodes = [];
+        let currentCage = null;
+        let dataLoaded = false;
+        let currentSearchCage = '';
 
         document.addEventListener('DOMContentLoaded', function() {
-            loadDataFromSheet();
+            // Don't load data on startup
+            
+            // Add search input handler
+            document.getElementById('cageSearchInput').addEventListener('input', function(e) {
+                const searchValue = e.target.value.trim();
+                currentSearchCage = searchValue;
+                displayQRCodes();
+                updateClearButton();
+            });
         });
 
+        // Cage input handling
+        let cageInputTimeout;
+        document.getElementById('cageInput').addEventListener('input', function(e) {
+            clearTimeout(cageInputTimeout);
+            const value = e.target.value.trim();
+            
+            if (value) {
+                cageInputTimeout = setTimeout(() => {
+                    addCage();
+                }, 500);
+            }
+        });
+
+        document.getElementById('cageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                clearTimeout(cageInputTimeout);
+                addCage();
+            }
+        });
+
+        // Bag input handling
         let inputTimeout;
         document.getElementById('codeInput').addEventListener('input', function(e) {
             clearTimeout(inputTimeout);
@@ -389,27 +515,57 @@
             }
         });
 
+        async function addCage() {
+            const input = document.getElementById('cageInput');
+            const code = input.value.trim();
+
+            if (!code) {
+                return;
+            }
+
+            // Validate cage code
+            const upperCode = code.toUpperCase();
+            if (upperCode.startsWith('PAL') || upperCode.startsWith('BAG')) {
+                showCageErrorMessage('Invalid format of the Cage');
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            currentCage = code;
+            showCageSuccessMessage(`Cage ${code} selected!`);
+            input.value = '';
+            
+            // Switch to scan bag tab
+            setTimeout(() => {
+                switchTab('scan');
+                document.getElementById('codeInput').focus();
+            }, 500);
+        }
+
         async function loadDataFromSheet() {
             try {
-                showLoadingMessage('Loading data from Google Sheets...');
+                showViewLoadingMessage('Loading data from Google Sheets...');
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
                 if (data.success) {
                     scannedCodes = data.data.filter(item => item.bag_code).map(item => ({
                         code: item.bag_code,
+                        cage: item.cage_code || '',
                         timestamp: item.created_at
                     }));
+                    dataLoaded = true;
                     updateScannedList();
                     updateCountBadge();
-                    hideLoadingMessage();
+                    hideViewLoadingMessage();
                 } else {
                     throw new Error('Failed to load data');
                 }
             } catch (error) {
                 console.error('Error loading data:', error);
-                showErrorMessage('Failed to load data from Google Sheets');
-                hideLoadingMessage();
+                showViewErrorMessage('Failed to load data from Google Sheets');
+                hideViewLoadingMessage();
             }
         }
 
@@ -432,13 +588,21 @@
             try {
                 showLoadingMessage('Adding code...');
                 
-                // Use GET request with parameters to avoid CORS issues
-                const url = `${API_URL}?action=add&bag_code=${encodeURIComponent(code)}`;
+                const url = `${API_URL}?action=add&bag_code=${encodeURIComponent(code)}&cage_code=${encodeURIComponent(currentCage || '')}`;
                 const response = await fetch(url);
                 const result = await response.json();
                 
                 if (result.success) {
-                    await loadDataFromSheet();
+                    // Add to local array
+                    const timestamp = new Date().toISOString();
+                    scannedCodes.push({
+                        code: code,
+                        cage: currentCage || '',
+                        timestamp: timestamp
+                    });
+                    
+                    updateScannedList();
+                    updateCountBadge();
                     showSuccessMessage(`Code ${code} added successfully!`);
                     input.value = '';
                     input.focus();
@@ -454,7 +618,7 @@
         }
 
         window.clearAllCodes = async function() {
-            if (scannedCodes.length === 0) {
+            if (scannedCodes.length === 0 && !dataLoaded) {
                 showViewErrorMessage('No codes to clear.');
                 return;
             }
@@ -462,27 +626,72 @@
             const clearBtn = document.getElementById('clearAllBtn');
             clearBtn.disabled = true;
 
-            try {
-                showViewLoadingMessage('Clearing all codes...');
-                
-                // Use GET request to avoid CORS issues
-                const url = `${API_URL}?action=clearAll`;
-                const response = await fetch(url);
-                const result = await response.json();
-                
-                if (result.success) {
-                    await loadDataFromSheet();
-                    displayQRCodes();
-                    showViewSuccessMessage('All codes cleared!');
-                } else {
-                    throw new Error(result.message || 'Failed to clear codes');
+            // Check if we're filtering by cage
+            if (currentSearchCage) {
+                // Clear only the filtered cage
+                const bagsToDelete = scannedCodes.filter(item => 
+                    item.cage && typeof item.cage === 'string' && item.cage.toLowerCase() === currentSearchCage.toLowerCase()
+                );
+
+                if (bagsToDelete.length === 0) {
+                    showViewErrorMessage('No bags found for this cage.');
+                    clearBtn.disabled = false;
+                    return;
                 }
-            } catch (error) {
-                console.error('Error clearing codes:', error);
-                showViewErrorMessage('Failed to clear codes. Please try again.');
-            } finally {
-                hideViewLoadingMessage();
-                clearBtn.disabled = false;
+
+                try {
+                    showViewLoadingMessage(`Clearing ${bagsToDelete.length} bag(s) from cage ${currentSearchCage}...`);
+                    
+                    const url = `${API_URL}?action=clearCage&cage_code=${encodeURIComponent(currentSearchCage)}`;
+                    const response = await fetch(url);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Remove cleared bags from local array
+                        scannedCodes = scannedCodes.filter(item => 
+                            !(item.cage && typeof item.cage === 'string' && item.cage.toLowerCase() === currentSearchCage.toLowerCase())
+                        );
+                        
+                        updateScannedList();
+                        updateCountBadge();
+                        displayQRCodes();
+                        showViewSuccessMessage(`Cleared ${bagsToDelete.length} bag(s) from cage ${currentSearchCage}!`);
+                    } else {
+                        throw new Error(result.message || 'Failed to clear cage');
+                    }
+                } catch (error) {
+                    console.error('Error clearing cage:', error);
+                    showViewErrorMessage('Failed to clear cage. Please try again.');
+                } finally {
+                    hideViewLoadingMessage();
+                    clearBtn.disabled = false;
+                }
+            } else {
+                // Clear all bags
+                try {
+                    showViewLoadingMessage('Clearing all codes...');
+                    
+                    const url = `${API_URL}?action=clearAll`;
+                    const response = await fetch(url);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        scannedCodes = [];
+                        dataLoaded = true;
+                        updateScannedList();
+                        updateCountBadge();
+                        displayQRCodes();
+                        showViewSuccessMessage('All codes cleared!');
+                    } else {
+                        throw new Error(result.message || 'Failed to clear codes');
+                    }
+                } catch (error) {
+                    console.error('Error clearing codes:', error);
+                    showViewErrorMessage('Failed to clear codes. Please try again.');
+                } finally {
+                    hideViewLoadingMessage();
+                    clearBtn.disabled = false;
+                }
             }
         };
 
@@ -490,7 +699,8 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             
             const clickedTab = Array.from(document.querySelectorAll('.tab')).find(t => 
-                (tab === 'scan' && t.textContent.includes('Scan Codes')) ||
+                (tab === 'cage' && t.textContent.includes('Add Cage')) ||
+                (tab === 'scan' && t.textContent.includes('Scan Bag')) ||
                 (tab === 'view' && t.textContent.includes('View QR Codes'))
             );
             if (clickedTab) clickedTab.classList.add('active');
@@ -498,19 +708,71 @@
             const clearAllBtn = document.getElementById('clearAllBtn');
             if (tab === 'view') {
                 clearAllBtn.style.display = 'block';
+                // Load data only when viewing
+                if (!dataLoaded) {
+                    loadDataFromSheet().then(() => {
+                        displayQRCodes();
+                        updateClearButton();
+                    });
+                } else {
+                    displayQRCodes();
+                    updateClearButton();
+                }
             } else {
                 clearAllBtn.style.display = 'none';
             }
 
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            if (tab === 'scan') {
+            if (tab === 'cage') {
+                document.getElementById('cageTab').classList.add('active');
+                document.getElementById('cageInput').focus();
+            } else if (tab === 'scan') {
                 document.getElementById('scanTab').classList.add('active');
+                updateCurrentCageDisplay();
                 document.getElementById('codeInput').focus();
-            } else {
+            } else if (tab === 'view') {
                 document.getElementById('viewTab').classList.add('active');
-                displayQRCodes();
             }
+        }
+
+        function updateClearButton() {
+            const clearBtn = document.getElementById('clearAllBtn');
+            if (currentSearchCage) {
+                const filteredCount = scannedCodes.filter(item => 
+                    item.cage && typeof item.cage === 'string' && item.cage.toLowerCase() === currentSearchCage.toLowerCase()
+                ).length;
+                clearBtn.textContent = `Clear Cage: ${currentSearchCage} (${filteredCount})`;
+            } else {
+                clearBtn.textContent = 'Clear All';
+            }
+        }
+
+        function updateCurrentCageDisplay() {
+            const display = document.getElementById('currentCageDisplay');
+            const warning = document.getElementById('noCageWarning');
+            const codeEl = document.getElementById('currentCageCode');
+            
+            if (currentCage) {
+                display.style.display = 'block';
+                warning.style.display = 'none';
+                codeEl.textContent = currentCage;
+            } else {
+                display.style.display = 'none';
+                warning.style.display = 'block';
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
         }
 
         function showSuccessMessage(message) {
@@ -528,13 +790,26 @@
         }
 
         function showLoadingMessage(message) {
-            const msgEl = document.getElementById('loadingMessage');
-            msgEl.textContent = message;
-            msgEl.style.display = 'block';
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingMessage').style.display = 'block';
         }
 
         function hideLoadingMessage() {
             document.getElementById('loadingMessage').style.display = 'none';
+        }
+
+        function showCageSuccessMessage(message) {
+            const msgEl = document.getElementById('cageSuccessMessage');
+            msgEl.textContent = message;
+            msgEl.style.display = 'block';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+        }
+
+        function showCageErrorMessage(message) {
+            const msgEl = document.getElementById('cageErrorMessage');
+            msgEl.textContent = message;
+            msgEl.style.display = 'block';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
         }
 
         function showViewSuccessMessage(message) {
@@ -552,9 +827,8 @@
         }
 
         function showViewLoadingMessage(message) {
-            const msgEl = document.getElementById('viewLoadingMessage');
-            msgEl.textContent = message;
-            msgEl.style.display = 'block';
+            document.getElementById('viewLoadingMessage').textContent = message;
+            document.getElementById('viewLoadingMessage').style.display = 'block';
         }
 
         function hideViewLoadingMessage() {
@@ -567,9 +841,6 @@
             if (scannedCodes.length === 0) {
                 listEl.innerHTML = `
                     <div class="empty-state">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                        </svg>
                         <p>No codes scanned yet</p>
                     </div>
                 `;
@@ -580,8 +851,8 @@
             listEl.innerHTML = recentCodes.map(item => `
                 <div class="scanned-item">
                     <div>
-                        <span>${item.code}</span><br>
-                        <small>${item.timestamp}</small>
+                        <span>${item.code}</span>${item.cage ? ` (Cage: ${item.cage})` : ''}<br>
+                        <small>${formatTimestamp(item.timestamp)}</small>
                     </div>
                 </div>
             `).join('');
@@ -599,24 +870,43 @@
 
         function displayQRCodes() {
             const gridEl = document.getElementById('qrGrid');
+            const searchResultsInfo = document.getElementById('searchResultsInfo');
             
             while (gridEl.firstChild) {
                 gridEl.removeChild(gridEl.firstChild);
             }
             
-            if (scannedCodes.length === 0) {
+            // Filter codes based on search
+            let codesToDisplay = scannedCodes;
+            if (currentSearchCage) {
+                codesToDisplay = scannedCodes.filter(item => 
+                    item.cage && typeof item.cage === 'string' && item.cage.toLowerCase().includes(currentSearchCage.toLowerCase())
+                );
+                
+                if (codesToDisplay.length > 0) {
+                    searchResultsInfo.textContent = `Found ${codesToDisplay.length} bag(s) for cage: ${currentSearchCage}`;
+                    searchResultsInfo.style.display = 'block';
+                } else {
+                    searchResultsInfo.textContent = `No bags found for cage: ${currentSearchCage}`;
+                    searchResultsInfo.style.display = 'block';
+                }
+            } else {
+                searchResultsInfo.style.display = 'none';
+            }
+            
+            if (codesToDisplay.length === 0) {
                 gridEl.innerHTML = `
                     <div class="empty-state">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                         </svg>
-                        <p>No QR codes to display</p>
+                        <p>${currentSearchCage ? 'No bags found for this cage' : 'No QR codes to display'}</p>
                     </div>
                 `;
                 return;
             }
             
-            scannedCodes.forEach((item, index) => {
+            codesToDisplay.forEach((item, index) => {
                 const qrItem = document.createElement('div');
                 qrItem.className = 'qr-item';
                 
@@ -627,10 +917,17 @@
                 const qrInfo = document.createElement('div');
                 qrInfo.className = 'qr-info';
                 qrInfo.innerHTML = `
-                    <div class="code-text">${item.code}</div>
-                    <div class="timestamp-wrapper">
-                        <div class="timestamp-label">Added at</div>
-                        <div class="timestamp">${item.timestamp}</div>
+                    <div class="info-block">
+                        <div class="info-label">Bag Code</div>
+                        <div class="info-value">${item.code}</div>
+                    </div>
+                    <div class="info-block">
+                        <div class="info-label">Cage Code</div>
+                        <div class="info-value">${item.cage || '-'}</div>
+                    </div>
+                    <div class="info-block">
+                        <div class="info-label">Added at</div>
+                        <div class="timestamp">${formatTimestamp(item.timestamp)}</div>
                     </div>
                 `;
                 
